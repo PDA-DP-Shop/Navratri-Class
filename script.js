@@ -1,8 +1,11 @@
 // Import Firebase modules from CDN
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.0/firebase-app.js";
-import { getFirestore, collection, addDoc, serverTimestamp, query, where, getDocs, doc, updateDoc } from "https://www.gstatic.com/firebasejs/11.9.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, serverTimestamp, query, where, getDocs, doc, updateDoc, orderBy, limit } from "https://www.gstatic.com/firebasejs/11.9.0/firebase-firestore.js";
 import { getAnalytics, logEvent } from "https://www.gstatic.com/firebasejs/11.9.0/firebase-analytics.js";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.9.0/firebase-storage.js";
+
+// Debug: Check the type of query to ensure it's a function
+console.log('typeof query:', typeof query); // Should log 'function'
 
 // Firebase configuration
 const firebaseConfig = {
@@ -20,6 +23,145 @@ const app = initializeApp(firebaseConfig);
 const analytics = getAnalytics(app);
 const db = getFirestore(app);
 const storage = getStorage(app);
+
+// Function to fetch and display all registrations
+async function displayAllRegistrations() {
+    const tableBody = document.getElementById('registrationsTableBody');
+    
+    try {
+        // Show loading message
+        tableBody.innerHTML = '<tr><td colspan="8" class="loading-message">Loading registrations...</td></tr>';
+
+        // Query Firestore for all registrations, ordered by creation date
+        const registrationsRef = collection(db, 'registrations');
+        const q = query(registrationsRef, orderBy('createdAt', 'desc'));
+        const querySnapshot = await getDocs(q);
+
+        if (querySnapshot.empty) {
+            tableBody.innerHTML = '<tr><td colspan="8" class="no-data">No registrations found</td></tr>';
+            return;
+        }
+
+        // Build table rows
+        let tableHTML = '';
+        querySnapshot.forEach(doc => {
+            const data = doc.data();
+            const date = data.createdAt ? new Date(data.createdAt.toDate()).toLocaleDateString() : 'N/A';
+            
+            tableHTML += `
+                <tr>
+                    <td>${data.name || ''}</td>
+                    <td>${data.mobile || ''}</td>
+                    <td>${data.email || ''}</td>
+                    <td>${data.gender || ''}</td>
+                    <td>${data.age || ''}</td>
+                    <td>${data.batch || ''}</td>
+                    <td>${data.paymentMethod === 'gpay' ? 'Google Pay' : 'Offline Payment'}</td>
+                    <td>${date}</td>
+                </tr>
+            `;
+        });
+        
+        tableBody.innerHTML = tableHTML;
+
+    } catch (error) {
+        console.error('Error fetching registrations:', error);
+        tableBody.innerHTML = '<tr><td colspan="8" class="error-message">Error loading registrations. Please try again.</td></tr>';
+    }
+}
+
+// Call displayAllRegistrations when the page loads
+document.addEventListener('DOMContentLoaded', () => {
+    displayAllRegistrations();
+    // Update registrations every 5 minutes
+    setInterval(displayAllRegistrations, 5 * 60 * 1000);
+});
+
+// Add styles for the registrations table
+const tableStyles = document.createElement('style');
+tableStyles.textContent = `
+    .table-responsive {
+        overflow-x: auto;
+        margin: 20px 0;
+    }
+
+    .registrations-table {
+        width: 100%;
+        border-collapse: collapse;
+        background: white;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    }
+
+    .registrations-table th,
+    .registrations-table td {
+        padding: 12px;
+        text-align: left;
+        border-bottom: 1px solid #ddd;
+    }
+
+    .registrations-table th {
+        background-color: #f5f5f5;
+        font-weight: 600;
+    }
+
+    .registrations-table tbody tr:hover {
+        background-color: #f9f9f9;
+    }
+
+    .registrations-table .status {
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 0.9em;
+    }
+
+    .registrations-table .status.completed {
+        background-color: #e7f7ed;
+        color: #1d6f42;
+    }
+
+    .registrations-table .status.pending {
+        background-color: #fff4e5;
+        color: #945e00;
+    }
+
+    .view-btn {
+        padding: 6px 12px;
+        background-color: #007bff;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.9em;
+    }
+
+    .view-btn:hover {
+        background-color: #0056b3;
+    }
+
+    .loading-message,
+    .no-data,
+    .error-message {
+        text-align: center;
+        padding: 20px;
+        color: #666;
+    }
+
+    .error-message {
+        color: #dc3545;
+    }
+
+    @media (max-width: 768px) {
+        .registrations-table {
+            font-size: 0.9em;
+        }
+        
+        .registrations-table th,
+        .registrations-table td {
+            padding: 8px;
+        }
+    }
+`;
+document.head.appendChild(tableStyles);
 
 // Function to update registration count
 async function updateRegistrationCount() {
@@ -126,6 +268,7 @@ if (registrationForm) {
             const registrationData = {
                 // Basic Registration Info
                 name: formData.get('fullName'),
+                nameLower: formData.get('fullName').trim().toLowerCase(), // For case-insensitive search
                 age: parseInt(formData.get('age')),
                 gender: formData.get('gender'),
                 email: formData.get('email'),
@@ -812,4 +955,151 @@ function showToast(message) {
     `;
     document.body.appendChild(toast);
     setTimeout(() => toast.remove(), 3000);
-} 
+}
+
+// Debounce function to limit API calls
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+// Search by name function
+window.searchByName = debounce(async function() {
+    const searchInput = document.getElementById('searchInput');
+    const searchResults = document.getElementById('searchResults');
+    const queryValue = searchInput.value.trim().toLowerCase();
+
+    // Clear results if search is empty
+    if (!queryValue || queryValue.length < 2) {
+        searchResults.innerHTML = '';
+        searchResults.classList.remove('active');
+        return;
+    }
+
+    try {
+        // Show loading state
+        searchResults.innerHTML = '<div class="search-result-item">Searching...</div>';
+        searchResults.classList.add('active');
+
+        // Query Firestore by nameLower for case-insensitive search
+        const registrationsRef = collection(db, 'registrations');
+        const q = query(registrationsRef, 
+            where('nameLower', '>=', queryValue),
+            where('nameLower', '<=', queryValue + '\uf8ff'),
+            limit(10)
+        );
+        
+        const querySnapshot = await getDocs(q);
+        
+        if (querySnapshot.empty) {
+            searchResults.innerHTML = '<div class="search-result-item">No results found</div>';
+        } else {
+            // Build table header
+            let tableHTML = `<table class="search-results-table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Phone</th>
+                        <th>Email</th>
+                        <th>Gender</th>
+                        <th>Age</th>
+                        <th>Address</th>
+                        <th>Batch</th>
+                        <th>Payment Method</th>
+                    </tr>
+                </thead>
+                <tbody>`;
+            querySnapshot.docs.forEach(doc => {
+                const data = doc.data();
+                tableHTML += `
+                    <tr>
+                        <td>${data.name || ''}</td>
+                        <td>${data.mobile || ''}</td>
+                        <td>${data.email || ''}</td>
+                        <td>${data.gender || ''}</td>
+                        <td>${data.age || ''}</td>
+                        <td>${data.address || ''}</td>
+                        <td>${data.batch || ''}</td>
+                        <td>${data.paymentMethod === 'gpay' ? 'Google Pay' : 'Offline Payment'}</td>
+                    </tr>
+                `;
+            });
+            tableHTML += '</tbody></table>';
+            searchResults.innerHTML = tableHTML;
+        }
+    } catch (error) {
+        console.error('Search error:', error.message, error);
+        showToast('Error searching registration: ' + error.message);
+    }
+}, 300);
+
+// Function to show detailed registration information
+window.showRegistrationDetails = async function(registrationId) {
+    try {
+        const docRef = doc(db, 'registrations', registrationId);
+        const docSnap = await getDoc(docRef);
+        
+        if (docSnap.exists()) {
+            const data = docSnap.data();
+            const modal = document.getElementById('searchResultsModal');
+            const modalContent = modal.querySelector('.modal-content');
+            
+            modalContent.innerHTML = `
+                <span class="close-modal">&times;</span>
+                <h3>Registration Details</h3>
+                <div class="registration-details">
+                    <p><strong>Registration ID:</strong> ${registrationId}</p>
+                    <p><strong>Name:</strong> ${data.name}</p>
+                    <p><strong>Phone:</strong> ${data.mobile}</p>
+                    <p><strong>Email:</strong> ${data.email || ''}</p>
+                    <p><strong>Gender:</strong> ${data.gender || ''}</p>
+                    <p><strong>Age:</strong> ${data.age || ''}</p>
+                    <p><strong>Address:</strong> ${data.address || ''}</p>
+                    <p><strong>Batch:</strong> ${data.batch || ''}</p>
+                    <p><strong>Registration Date:</strong> ${data.createdAt ? new Date(data.createdAt).toLocaleDateString() : ''}</p>
+                    <p><strong>Payment Status:</strong> <span class="status ${data.paymentStatus}">${data.paymentStatus}</span></p>
+                    <p><strong>Payment Method:</strong> ${data.paymentMethod === 'gpay' ? 'Google Pay' : 'Offline Payment'}</p>
+                    ${data.paymentMethod === 'offline' ? `<p><strong>Payment Taker:</strong> ${data.paymentTaker || ''}</p>` : ''}
+                    ${data.paymentMethod === 'gpay' ? `<p><strong>UPI ID:</strong> ${data.paymentDetails?.upiId || ''}</p>` : ''}
+                </div>
+            `;
+            
+            modal.style.display = 'block';
+            
+            // Add close button functionality
+            const closeBtn = modal.querySelector('.close-modal');
+            closeBtn.onclick = () => {
+                modal.style.display = 'none';
+            };
+            
+            // Close modal when clicking outside
+            window.onclick = (event) => {
+                if (event.target === modal) {
+                    modal.style.display = 'none';
+                }
+            };
+        } else {
+            showToast('Registration not found');
+        }
+    } catch (error) {
+        console.error('Error fetching registration details:', error);
+        showToast('Error fetching registration details');
+    }
+};
+
+// Close search results when clicking outside
+document.addEventListener('click', (e) => {
+    const searchBox = document.querySelector('.search-box');
+    const searchResults = document.getElementById('searchResults');
+    
+    if (!searchBox.contains(e.target)) {
+        searchResults.classList.remove('active');
+    }
+}); 
