@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Navratri Garba Training Classes</title>
+    
+    <!-- Preload critical resources -->
+    <link rel="preload" href="styles.css" as="style">
+    <link rel="preload" href="script.js" as="script">
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" as="style">
+    
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="styles.css">
+    <!-- Font Awesome with loading optimization -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" media="print" onload="this.media='all'">
+    <!-- Google Fonts with display swap -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+
+    <!-- Scripts with defer -->
+    <script type="module" src="./script.js" defer></script>
+    
+    <!-- Loading indicator styles -->
+    <style>
+        .page-loader {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            transition: opacity 0.5s ease-out;
+        }
+        .page-loader.fade-out {
+            opacity: 0;
+            pointer-events: none;
+        }
+        .loader-spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading indicator -->
+    <div class="page-loader">
+        <div class="loader-spinner"></div>
+    </div>
+
+    <!-- Header Section -->
+    <header class="hero">
+        <nav class="navbar">
+            <div class="logo">
+                <i class="fas fa-dharmachakra"></i>
+                Navratri Garba
+            </div>
+        </nav>
+        
+        <div class="hero-content">
+            <h1>Experience the Magic of Navratri Garba</h1>
+            <p>Join our expert-led training classes and master the art of traditional dance</p>
+            <div class="registration-counter">
+                <span class="counter-label">Total Registrations:</span>
+                <span id="totalRegistrations" class="counter-value">Loading...</span>
+            </div>
+            <!-- <a href="#register" class="cta-button">Register Now</a> -->
+        </div>
+        
+        <div class="hero-overlay"></div>
+    </header>
+
+    <!-- Registration Form Section -->
+    <section id="register" class="registration-section">
+        <div class="container">
+            <h2>Registration Form</h2>
+            <form id="registrationForm" class="registration-form">
+                <div class="form-group">
+                    <label for="fullName">Full Name *</label>
+                    <input type="text" id="fullName" name="fullName" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="age">Age *</label>
+                    <input type="number" id="age" name="age" min="5" max="100" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Gender *</label>
+                    <div class="radio-group">
+                        <label>
+                            <input type="radio" name="gender" value="male" required> Male
+                        </label>
+                        <label>
+                            <input type="radio" name="gender" value="female"> Female
+                        </label>
+                        <label>
+                            <input type="radio" name="gender" value="other"> Other
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="mobile">Mobile Number *</label>
+                    <input type="tel" id="mobile" name="mobile" pattern="[0-9]{10}" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="email">Email *</label>
+                    <input type="email" id="email" name="email" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="address">Address *</label>
+                    <textarea id="address" name="address" rows="3" required></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="batch">Select Batch Timing *</label>
+                    <select id="batch" name="batch" required>
+                        <option value="">Select a batch</option>
+                        <option value="Night">Night (9:00 AM - 11:00 AM)</option>
+                    </select>
+                </div>
+
+                <div class="form-group checkbox-group">
+                    <label>
+                        <input type="checkbox" id="terms" name="terms" required>
+                        I agree to the Terms & Conditions *
+                    </label>
+                </div>
+
+                <div class="form-group">
+                    <label>Select Payment Method *</label>
+                    <div class="payment-options">
+                        <label class="payment-option">
+                            <input type="radio" name="paymentMethod" value="gpay" required>
+                            <span>Google Pay</span>
+                        </label>
+                        <label class="payment-option">
+                            <input type="radio" name="paymentMethod" value="offline">
+                            <span>Offline Payment</span>
+                        </label>
+                    </div>
+
+                    <!-- Google Pay Details -->
+                    <div id="regGpayDetails" class="payment-details" style="display: none;">
+                        <div class="gpay-info">
+                            <h4>Google Pay Details</h4>
+                            <div class="upi-details">
+                                <p><strong>UPI ID:</strong> <span id="regUpiId">+918000662685</span></p>
+                                <p><strong>Name:</strong> Navratri Garba Classes</p>
+                            </div>
+                            <div class="qr-code">
+                                <img src="image/payment.jpeg" alt="Google Pay QR Code" style="max-width: 200px; height: auto;">
+                                <p>Scan QR code to pay</p>
+                            </div>
+                            <div class="payment-status">
+                                <label>
+                                    <input type="checkbox" id="regPaymentConfirmed" required>
+                                    I confirm that I have made the payment
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Offline Payment Details -->
+                    <div id="regOfflineDetails" class="payment-details" style="display: none;">
+                        <div class="offline-info">
+                            <h4>Offline Payment Details</h4>
+                            <div class="offline-instructions">
+                                <p><i class="fas fa-map-marker-alt"></i> <strong>Payment Location:</strong> Navratri Garba Ground</p>
+                                <p><i class="fas fa-phone"></i> <strong>Contact:</strong> +918000662685</p>
+                                <p><i class="fas fa-clock"></i> <strong>Timing:</strong> 9:00 AM - 11:00 AM</p>
+                                <div class="form-group" style="margin-top: 15px;">
+                                    <label for="paymentTaker">Select Payment Taker *</label>
+                                    <select id="paymentTaker" name="paymentTaker" required>
+                                        <option value="">Select payment taker</option>
+                                        <option value="Devansh">Devansh</option>
+                                        <option value="Meet">Meet</option>
+                                        <option value="Vishwash">Vishwash</option>
+                                        <option value="Henil">Henil</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="payment-status">
+                                <label>
+                                    <input type="checkbox" id="regOfflinePaymentConfirmed" required>
+                                    I confirm that I will make the payment at the venue
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" class="submit-btn">Submit Registration</button>
+            </form>
+        </div>
+    </section>
+
+    <!-- Payment Status Modal -->
+    <div id="paymentStatusModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h3>Payment Status</h3>
+            <div id="paymentStatusContent">
+                <!-- Payment status will be displayed here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Search Results Modal -->
+    <div id="searchResultsModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h3>Enter Registration Details</h3>
+            <form id="searchRegistrationForm" class="registration-form">
+                <div class="form-group">
+                    <label for="searchFullName">Full Name *</label>
+                    <input type="text" id="searchFullName" name="searchFullName" required>
+                </div>
+                <div class="form-group">
+                    <label for="searchPhone">Phone Number *</label>
+                    <input type="tel" id="searchPhone" name="searchPhone" pattern="[0-9]{10}" required>
+                </div>
+                <button type="submit" class="submit-btn">Submit</button>
+            </form>
+            <div id="searchResultsContent">
+                <!-- Search results will be displayed here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Success Modal -->
+    <div id="successModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h3>Registration Successful!</h3>
+            <p>See you on the Garba ground!</p>
+        </div>
+    </div>
+
+    <!-- Add loader removal script -->
+    <script>
+        window.addEventListener('load', function() {
+            const loader = document.querySelector('.page-loader');
+            loader.classList.add('fade-out');
+            setTimeout(() => {
+                loader.style.display = 'none';
+            }, 500);
+        });
+    </script>
+</body>
+</html> 
